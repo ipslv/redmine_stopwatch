@@ -15,7 +15,7 @@
 |====
 
 a|
-image::Manual/images/ChatGPT-Redmine-Stopwatch-crop-128x128.png[align="center"]
+image::ChatGPT-Redmine-Stopwatch-crop-128x128.png[align="center"]
 
 a|
 The plugin adds an interactive stopwatch timer to the Redmine top panel.
