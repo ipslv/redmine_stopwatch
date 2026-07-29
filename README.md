@@ -2,7 +2,7 @@
 
 |  |  |
 |--|--|
-| ![Redmine Stopwatch plugin](Doc/ru_RU/Manual/images/ChatGPT-Redmine-Stopwatch-crop-128x128.png) | A Redmine plugin that adds an interactive stopwatch timer directly to the site header. It allows you to track real working time on issues and record it via the standard Redmine time tracking mechanism. |
+| ![Redmine Stopwatch plugin](Doc/en_EN/Manual/images/ChatGPT-Redmine-Stopwatch-crop-128x128.png) | A Redmine plugin that adds an interactive stopwatch timer directly to the site header. It allows you to track real working time on issues and record it via the standard Redmine time tracking mechanism. |
 
 ---
 
