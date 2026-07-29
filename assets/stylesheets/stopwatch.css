@@ -1,0 +1,168 @@
+/* =====================================================
+   Redmine Stopwatch Plugin — Stylesheet
+   ===================================================== */
+
+/* Widget container — appended to #top-menu by JS.
+   float: right positions it on the right side of the top bar.
+   display: flex arranges children in a row. */
+#stopwatch-widget {
+  float: right;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  line-height: 1;
+}
+
+/* Buttons and the segments link — bare, no border/background.
+   Match the visual style of #top-menu links. */
+#stopwatch-widget .sw-btn {
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9em;
+  line-height: 1;
+  padding: 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  height: auto
+}
+
+#stopwatch-widget .sw-btn:hover {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+}
+
+#stopwatch-widget .sw-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Elapsed time display */
+#stopwatch-widget .sw-time {
+  color: #fff;
+  font-size: 0.9em;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.8em;
+  text-align: right;
+}
+
+#stopwatch-widget .sw-paused {
+  opacity: 0.6;
+}
+
+/* Context link (project name or issue #ID) */
+#stopwatch-widget .sw-ctx {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#stopwatch-widget .sw-ctx:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+/* Separator dash between context label and timer */
+#stopwatch-widget .sw-sep {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9em;
+  margin: 0 1px;
+}
+
+/* Pending segments badge (notification dot on ☰) */
+#stopwatch-widget .sw-badge {
+  background: #e74c3c;
+  color: #fff;
+  font-size: 0.7em;
+  font-weight: bold;
+  min-width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  margin-left: 1px;
+  vertical-align: top;
+  line-height: 1;
+}
+
+/* =====================================================
+   Segments page
+   ===================================================== */
+
+/* Hidden save-forms rendered before each table (HTML5 form= attribute) */
+.sw-hidden-forms { display: none; }
+
+.stopwatch-segments-page h3.sw-date-group {
+  margin: 1.2em 0 0.4em;
+  font-size: 1em;
+  color: #555;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+}
+
+table.stopwatch-segments {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.stopwatch-segments td,
+table.stopwatch-segments th {
+  vertical-align: middle;
+  padding: 4px 6px;
+}
+
+table.stopwatch-segments .sw-col-time {
+  white-space: nowrap;
+  width: 5em;
+}
+
+table.stopwatch-segments .sw-col-project select {
+  min-width: 130px;
+}
+
+table.stopwatch-segments .sw-col-issue input[type="text"] {
+  width: 180px;
+}
+
+table.stopwatch-segments .sw-col-comment input[type="text"] {
+  width: 200px;
+}
+
+table.stopwatch-segments .sw-hours-input {
+  width: 4em;
+  text-align: center;
+}
+
+table.stopwatch-segments .sw-col-actions {
+  white-space: nowrap;
+}
+
+a.sw-stop-disabled, a.sw-stop-disabled:hover {
+  color: #aaa;
+  cursor: default;
+  text-decoration: none;
+}
+
+/* Spent time block below segments */
+.stopwatch-spent-time {
+  margin-top: 2em;
+}
+
+/* Vertical separator between logical groups in the widget */
+#stopwatch-widget .sw-vsep {
+  width: 1px;
+  height: 0.85em;
+  background: rgba(255, 255, 255, 0.35);
+  align-self: center;
+  flex-shrink: 0;
+  margin: 0 3px;
+}

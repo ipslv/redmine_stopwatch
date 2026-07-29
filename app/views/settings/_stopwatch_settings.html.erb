@@ -1,0 +1,23 @@
+<p>
+  <label><%= l(:label_stopwatch_default_project) %></label>
+  <%= select_tag 'settings[default_project_id]',
+        project_tree_options_for_select(
+          Project.active.to_a,
+          selected: Project.find_by(id: @settings['default_project_id']),
+          include_blank: true
+        ) %>
+</p>
+
+<p>
+  <label><%= l(:label_stopwatch_spent_time_days) %></label>
+  <%= text_field_tag 'settings[spent_time_days]', @settings['spent_time_days'], size: 4 %>
+  <%= l(:label_day_plural) %>
+</p>
+
+<p>
+  <label><%= l(:label_stopwatch_max_hours_increase) %></label>
+  <%= number_field_tag 'settings[max_hours_increase]',
+      @settings['max_hours_increase'].presence || '60',
+      min: 1, max: 480, size: 4, required: true %>
+  <%= l(:label_minute_plural) %> (1–480)
+</p>

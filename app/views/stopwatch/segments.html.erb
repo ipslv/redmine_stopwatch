@@ -1,0 +1,638 @@
+<div class="stopwatch-segments-page">
+  <h2><%= l(:label_stopwatch_segments) %></h2>
+
+  <%# ── Active timer block ──────────────────────────────────────────────────── %>
+  <% if @timer.state != 'stopped' %>
+    <div class="mypage-box">
+      <h3><%= l(:label_stopwatch_active_timer) %></h3>
+
+      <div class="sw-hidden-forms">
+        <%= form_tag(stopwatch_update_timer_comment_path, method: :post,
+                     id: 'sw-timer-comment-form') { } %>
+      </div>
+
+      <table class="list stopwatch-segments">
+        <thead>
+          <tr>
+            <th><%= l(:field_project) %></th>
+            <th><%= l(:field_issue) %></th>
+            <th class="sw-col-time"><%= l(:field_hours) %></th>
+            <th><%= l(:field_activity) %></th>
+            <th><%= l(:field_comments) %></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="sw-active-timer-row">
+            <td class="sw-col-project">
+              <%= @timer.project ? link_to_project(@timer.project) : '' %>
+            </td>
+            <td class="sw-col-issue">
+              <%= @timer.issue ? link_to_issue(@timer.issue, truncate: 50) : '' %>
+            </td>
+            <td class="sw-col-time">
+              <input type="text"
+                     id="sw-timer-hours"
+                     class="sw-hours-input"
+                     data-state="<%= @timer.state %>"
+                     data-accumulated-seconds="<%= @timer.accumulated_seconds %>"
+                     data-started-at="<%= @timer.started_at&.utc&.iso8601 %>"
+                     value="<%= @timer.elapsed_display %>"
+                     size="5" />
+              <input type="hidden" name="hours"
+                     form="sw-timer-comment-form"
+                     id="sw-timer-hours-hidden"
+                     value="" />
+            </td>
+            <td class="sw-col-activity">
+              <select name="activity_id"
+                      form="sw-timer-comment-form"
+                      id="sw-timer-activity">
+                <option value=""></option>
+                <% @timer_activities.each do |activity| %>
+                  <option value="<%= activity.id %>"
+                          <%= ' selected' if activity.id == @timer_stored_activity_id %>>
+                    <%= activity.name %>
+                  </option>
+                <% end %>
+              </select>
+            </td>
+            <td class="sw-col-comment">
+              <input type="text" name="comments"
+                     form="sw-timer-comment-form"
+                     id="sw-timer-comments"
+                     class="sw-comments-input"
+                     value="<%= h(@timer.comments.to_s) %>"
+                     placeholder="<%= l(:field_comments) %>" />
+            </td>
+            <td class="sw-col-actions">
+              <a href="#" onclick="return swSubmitTimerForm();"
+                 class="icon icon-save">
+                <%= sprite_icon('save', l(:button_save)) %>
+              </a>
+              <a href="#" id="sw-stop-btn" onclick="return swStopTimer();">⏹ <%= l(:button_stop) %></a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <%# ── Segments block ──────────────────────────────────────────────────────── %>
+  <div class="mypage-box">
+    <h3><%= l(:label_stopwatch_segments_list) %></h3>
+
+    <% if @segments_by_date.empty? %>
+      <p class="nodata"><%= l(:label_stopwatch_no_segments) %></p>
+    <% else %>
+      <% @segments_by_date.each do |date, segments| %>
+      <h3 class="sw-date-group">
+        <% if date == User.current.today %>
+          <%= l(:label_today).titleize %>
+        <% elsif date == User.current.today - 1 %>
+          <%= l(:label_yesterday).titleize %>
+        <% else %>
+          <%= format_date(date) %>
+        <% end %>
+      </h3>
+
+      <%# Two hidden forms per segment:
+          sw-update-form-N → POST update_segment (Save: persist fields to DB)
+          sw-log-form-N    → POST save_segment   (Log time: create TimeEntry)
+          Inputs in the table rows reference these via the HTML5 form= attribute. %>
+      <div class="sw-hidden-forms">
+        <% segments.each do |segment| %>
+          <%= form_tag(stopwatch_update_segment_path(segment), method: :post,
+                       id: "sw-update-form-#{segment.id}") { } %>
+          <%= form_tag(stopwatch_save_segment_path(segment), method: :post,
+                       id: "sw-log-form-#{segment.id}") { } %>
+        <% end %>
+      </div>
+
+      <table class="list stopwatch-segments">
+        <thead>
+          <tr>
+            <th><%= l(:field_project) %></th>
+            <th><%= l(:field_issue) %></th>
+            <th class="sw-col-time"><%= l(:field_hours) %></th>
+            <th><%= l(:field_activity) %></th>
+            <th><%= l(:field_comments) %></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% segments.each do |segment| %>
+            <%
+              # Resolve effective project for this segment
+              seg_project = segment.project || @default_project
+              seg_project_id = seg_project&.id
+
+              # Activities for initial project (not refreshed on project change — server-side only)
+              activities  = TimeEntryActivity.available_activities(seg_project)
+              # Prefer stored activity_id, fall back to project/user default
+              stored_aid  = segment.activity_id ||
+                            TimeEntryActivity.default_activity_id(User.current, seg_project)
+            %>
+            <tr id="segment-<%= segment.id %>" data-segment-id="<%= segment.id %>">
+
+              <%# ── Project dropdown ──────────────────────────────────────── %>
+              <td class="sw-col-project">
+                <%# Visible select — bound to update form %>
+                <select name="project_id"
+                        form="sw-update-form-<%= segment.id %>"
+                        id="sw-project-<%= segment.id %>"
+                        class="sw-project-select"
+                        data-segment-id="<%= segment.id %>">
+                  <option value=""></option>
+                  <%= project_tree_options_for_select(@allowed_projects, selected: seg_project) %>
+                </select>
+                <%# Mirror hidden input — bound to log form, synced via JS %>
+                <input type="hidden" name="project_id"
+                       form="sw-log-form-<%= segment.id %>"
+                       id="sw-project-hidden-<%= segment.id %>"
+                       value="<%= seg_project_id %>" />
+              </td>
+
+              <%# ── Issue field with autocomplete ────────────────────────── %>
+              <td class="sw-col-issue">
+                <%# Display-only text input — no name/form, never submitted directly %>
+                <input type="text"
+                       id="sw-issue-<%= segment.id %>"
+                       class="sw-issue-input autocomplete"
+                       data-segment-id="<%= segment.id %>"
+                       value="<%= segment.issue ? "##{segment.issue.id} - #{h(segment.issue.subject.to_s.truncate(50))}" : '' %>"
+                       placeholder="<%= l(:field_issue) %>"
+                       autocomplete="off" />
+                <%# Hidden numeric issue_id — bound to update form, synced via JS %>
+                <input type="hidden" name="issue_id"
+                       form="sw-update-form-<%= segment.id %>"
+                       id="sw-issue-update-hidden-<%= segment.id %>"
+                       value="<%= segment.issue_id %>" />
+                <%# Hidden numeric issue_id — bound to log form, synced via JS %>
+                <input type="hidden" name="issue_id"
+                       form="sw-log-form-<%= segment.id %>"
+                       id="sw-issue-hidden-<%= segment.id %>"
+                       value="<%= segment.issue_id %>" />
+              </td>
+
+              <%# ── Time (editable) ───────────────────────────────────── %>
+              <td class="sw-col-time">
+                <input type="text" name="hours"
+                       form="sw-update-form-<%= segment.id %>"
+                       id="sw-hours-<%= segment.id %>"
+                       class="sw-hours-input"
+                       data-segment-id="<%= segment.id %>"
+                       value="<%= segment.time_display %>"
+                       size="5" />
+                <input type="hidden" name="hours"
+                       form="sw-log-form-<%= segment.id %>"
+                       id="sw-hours-hidden-<%= segment.id %>"
+                       value="<%= segment.time_display %>" />
+              </td>
+
+              <%# ── Activity dropdown ─────────────────────────────────────── %>
+              <td class="sw-col-activity">
+                <select name="activity_id"
+                        form="sw-update-form-<%= segment.id %>"
+                        id="sw-activity-<%= segment.id %>"
+                        class="sw-activity-select"
+                        data-segment-id="<%= segment.id %>">
+                  <option value=""></option>
+                  <% activities.each do |activity| %>
+                    <option value="<%= activity.id %>"<%= ' selected' if activity.id == stored_aid %>>
+                      <%= activity.name %>
+                    </option>
+                  <% end %>
+                </select>
+                <%# Mirror — bound to log form %>
+                <input type="hidden" name="activity_id"
+                       form="sw-log-form-<%= segment.id %>"
+                       id="sw-activity-hidden-<%= segment.id %>"
+                       value="<%= stored_aid %>" />
+              </td>
+
+              <%# ── Comments ──────────────────────────────────────────────── %>
+              <td class="sw-col-comment">
+                <input type="text"
+                       name="comments"
+                       form="sw-update-form-<%= segment.id %>"
+                       id="sw-comments-<%= segment.id %>"
+                       class="sw-comments-input"
+                       data-segment-id="<%= segment.id %>"
+                       value="<%= h(segment.comments.to_s) %>"
+                       placeholder="<%= l(:field_comments) %>" />
+                <input type="hidden" name="comments"
+                       form="sw-log-form-<%= segment.id %>"
+                       id="sw-comments-hidden-<%= segment.id %>"
+                       value="<%= h(segment.comments.to_s) %>" />
+              </td>
+
+              <%# ── Actions ───────────────────────────────────────────────── %>
+              <td class="sw-col-actions">
+                <%# Save: persist fields to DB without creating TimeEntry %>
+                <a href="#" onclick="return swSubmitForm('sw-update-form-<%= segment.id %>', <%= segment.id %>);"
+                   class="icon icon-save">
+                  <%= sprite_icon('save', l(:button_save)) %>
+                </a>
+
+                <%# Log time: create TimeEntry and remove segment %>
+                <a href="#" onclick="return swSubmitForm('sw-log-form-<%= segment.id %>', <%= segment.id %>);"
+                   class="icon icon-time-add">
+                  <%= sprite_icon('time-add', l(:button_log_time)) %>
+                </a>
+
+                <%# Delete: removes segment with confirmation %>
+                <%= link_to sprite_icon('del', l(:button_delete)),
+                            stopwatch_delete_segment_path(segment),
+                            method: :delete,
+                            data:   { confirm: l(:text_are_you_sure) },
+                            class:  'icon icon-del' %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  <% end %>
+  </div>
+
+  <%# ── Other users' timers block ──────────────────────────────────────────── %>
+  <% if @other_timers.present? %>
+    <div class="mypage-box">
+      <h3><%= l(:label_stopwatch_other_timers) %></h3>
+
+      <table class="list stopwatch-segments">
+        <thead>
+          <tr>
+            <th><%= l(:field_user) %></th>
+            <th><%= l(:field_project) %></th>
+            <th><%= l(:field_issue) %></th>
+            <th class="sw-col-time"><%= l(:field_hours) %></th>
+            <th><%= l(:field_status) %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @other_timers.each do |timer| %>
+            <tr>
+              <td><%= link_to_user(timer.user) %></td>
+              <td><%= timer.project ? link_to_project(timer.project) : '' %></td>
+              <td><%= timer.issue ? link_to_issue(timer.issue, truncate: 50) : '' %></td>
+              <td class="sw-col-time">
+                <span class="sw-other-elapsed"
+                      data-state="<%= timer.state %>"
+                      data-accumulated-seconds="<%= timer.accumulated_seconds %>"
+                      data-started-at="<%= timer.started_at&.utc&.iso8601 %>">
+                  <%= timer.elapsed_display %>
+                </span>
+              </td>
+              <td>
+                <% if timer.state == 'running' %>
+                  <%= l(:label_stopwatch_state_running) %>
+                <% else %>
+                  <%= l(:label_stopwatch_state_paused) %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+
+  <%# ── Spent time block ─────────────────────────────────────────────────── %>
+  <div class="mypage-box">
+    <h3>
+      <%= link_to l(:label_spent_time), time_entries_path(user_id: 'me') %>
+      (<%= l(:label_last_n_days, @spent_days) %>: <%= l_hours_short(@spent_total_hours) %>)
+    </h3>
+
+    <% if @spent_entries.any? %>
+      <table class="list time-entries odd-even">
+        <thead>
+          <tr>
+            <th><%= l(:field_activity) %></th>
+            <th><%= l(:label_project) %></th>
+            <th><%= l(:field_comments) %></th>
+            <th><%= l(:field_hours) %></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @spent_entries_by_day.keys.sort.reverse.each do |day| %>
+            <tr class="odd">
+              <td>
+                <strong>
+                  <% if day == User.current.today %>
+                    <%= l(:label_today).titleize %>
+                  <% elsif day == User.current.today - 1 %>
+                    <%= l(:label_yesterday).titleize %>
+                  <% else %>
+                    <%= format_date(day) %>
+                  <% end %>
+                </strong>
+              </td>
+              <td colspan="2"></td>
+              <td class="hours"><em><%= html_hours(format_hours(@spent_entries_by_day[day].sum(&:hours))) %></em></td>
+              <td></td>
+            </tr>
+            <% @spent_entries_by_day[day].each do |entry| %>
+              <tr class="time-entry">
+                <td class="activity"><%= entry.activity %></td>
+                <td class="subject">
+                  <%= link_to_project(entry.project) %>
+                  <% if entry.issue %>
+                    <%= h(' - ') + link_to_issue(entry.issue, truncate: 50) %>
+                  <% end %>
+                </td>
+                <td class="comments"><%= entry.comments %></td>
+                <td class="hours"><%= html_hours(format_hours(entry.hours)) %></td>
+                <td class="buttons">
+                  <% if entry.editable_by?(User.current) %>
+                    <%= link_to sprite_icon('edit', l(:button_edit)),
+                                edit_time_entry_path(entry),
+                                class: 'icon icon-edit' %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="nodata"><%= l(:label_no_data) %></p>
+    <% end %>
+  </div>
+</div>
+
+<%# ── Segments page JavaScript ────────────────────────────────────────────── %>
+<% content_for :header_tags do %>
+<script>
+(function ($) {
+  'use strict';
+
+  // ── Shared tick utility ──────────────────────────────────────────────────
+  // Aligns to the next whole-minute boundary, then fires every 60 s.
+  function startMinuteTick(el, accSeconds, startedAtMs) {
+    function tick() {
+      var secs = accSeconds;
+      if (startedAtMs) { secs += Math.floor((Date.now() - startedAtMs) / 1000); }
+      var mins = Math.floor(secs / 60);
+      var h    = Math.floor(mins / 60);
+      var m    = mins % 60;
+      el.textContent = h + ':' + (m < 10 ? '0' : '') + m;
+    }
+    var msToNext = 60000 - (Date.now() % 60000);
+    setTimeout(function () { tick(); setInterval(tick, 60000); }, msToNext);
+  }
+
+  var AUTO_COMPLETE_URL  = '<%= j auto_complete_issues_path %>';
+  var ISSUE_PROJECT_URL  = '<%= j stopwatch_issue_project_path(issue_id: '__ID__') %>';
+  var MSG_COMMENTS_REQUIRED = '<%= j l(:error_stopwatch_comments_required) %>';
+  var MSG_INVALID_HOURS     = '<%= j l(:error_stopwatch_invalid_hours) %>';
+
+  // Validate comments and hours format before submitting Save / Log time forms
+  window.swSubmitForm = function (formId, segId) {
+    var $comments = $('#sw-comments-' + segId);
+    if ($.trim($comments.val()) === '') {
+      alert(MSG_COMMENTS_REQUIRED);
+      $comments.focus();
+      return false;
+    }
+    var $hours = $('#sw-hours-' + segId);
+    if ($hours.length) {
+      var hval = $.trim($hours.val());
+      if (!/^\d+:\d{2}$/.test(hval)) {
+        alert(MSG_INVALID_HOURS);
+        $hours.focus();
+        return false;
+      }
+      if (parseInt(hval.split(':')[1], 10) >= 60) {
+        alert(MSG_INVALID_HOURS);
+        $hours.focus();
+        return false;
+      }
+    }
+    document.getElementById(formId).submit();
+    return false;
+  };
+
+  // Stop timer: save comment + activity, create segment, stop timer
+  window.swStopTimer = function () {
+    if ($('#sw-stop-btn').hasClass('sw-stop-disabled')) { return false; }
+    var $form = $('#sw-timer-comment-form');
+    $form.append('<input type="hidden" name="stop" value="1" />');
+    $form[0].submit();
+    return false;
+  };
+
+  // Validate and submit active timer form (saves comment + activity, optionally snaps hours)
+  window.swSubmitTimerForm = function () {
+    var $hours  = $('#sw-timer-hours');
+    var $hidden = $('#sw-timer-hours-hidden');
+
+    if ($hidden.val() !== '') {
+      var hval = $.trim($hours.val());
+      if (!/^\d+:\d{2}$/.test(hval)) {
+        alert(MSG_INVALID_HOURS);
+        $hours.focus();
+        return false;
+      }
+      if (parseInt(hval.split(':')[1], 10) >= 60) {
+        alert(MSG_INVALID_HOURS);
+        $hours.focus();
+        return false;
+      }
+    }
+
+    document.getElementById('sw-timer-comment-form').submit();
+    return false;
+  };
+
+  // ── Mirror visible inputs to hidden log-form fields ─────────────────────
+
+  $(document).on('input', '.sw-hours-input', function () {
+    var segId = $(this).data('segment-id');
+    $('#sw-hours-hidden-' + segId).val($(this).val());
+  });
+
+  $(document).on('change', '.sw-activity-select', function () {
+    var segId = $(this).data('segment-id');
+    $('#sw-activity-hidden-' + segId).val($(this).val());
+  });
+
+  $(document).on('input', '.sw-comments-input', function () {
+    var segId = $(this).data('segment-id');
+    $('#sw-comments-hidden-' + segId).val($(this).val());
+  });
+
+  // Changing project clears the issue field and its hidden ID
+  $(document).on('change', '.sw-project-select', function () {
+    var segId = $(this).data('segment-id');
+    var projId = $(this).val();
+    // Mirror to log form
+    $('#sw-project-hidden-' + segId).val(projId);
+    // Clear issue text and both hidden IDs (update-form + log-form)
+    $('#sw-issue-' + segId).val('');
+    $('#sw-issue-update-hidden-' + segId).val('');
+    $('#sw-issue-hidden-' + segId).val('');
+  });
+
+  // Clearing the issue text field manually clears the hidden ID too
+  $(document).on('input', '.sw-issue-input', function () {
+    var segId = $(this).data('segment-id');
+    if ($(this).val() === '') {
+      $('#sw-issue-update-hidden-' + segId).val('');
+      $('#sw-issue-hidden-' + segId).val('');
+    }
+  });
+
+  // ── Issue autocomplete ───────────────────────────────────────────────────
+
+  function setupAutocomplete(segId) {
+    var fieldId = 'sw-issue-' + segId;
+
+    observeAutocompleteField(fieldId,
+      function (request, callback) {
+        var projectId = $('#sw-project-' + segId).val();
+        var data = { term: request.term };
+        if (projectId) {
+          data.project_id = projectId;
+        } else {
+          data.scope = 'all';
+        }
+        $.get(AUTO_COMPLETE_URL, data, null, 'json')
+          .done(function (resp) { callback(resp); })
+          .fail(function () { callback([]); });
+      },
+      {
+        select: function (event, ui) {
+          // ui.item = { id, label: "Tracker #ID: Subject", value: ID }
+          $('#sw-issue-' + segId).val(ui.item.label);
+          $('#sw-issue-update-hidden-' + segId).val(ui.item.value);
+          $('#sw-issue-hidden-' + segId).val(ui.item.value);
+
+          // Auto-fill project dropdown via plugin endpoint (no REST API dependency)
+          $.getJSON(ISSUE_PROJECT_URL.replace('__ID__', ui.item.value), function (data) {
+            if (data && data.project_id) {
+              var projId = data.project_id;
+              var $sel = $('#sw-project-' + segId);
+              if ($sel.find('option[value="' + projId + '"]').length) {
+                $sel.val(projId);
+                $('#sw-project-hidden-' + segId).val(projId);
+              }
+            }
+          });
+
+          return false; // prevent jQuery UI from overwriting the field with numeric value
+        }
+      }
+    );
+  }
+
+  // Initialize autocomplete and start ticking after DOM ready
+  $(document).ready(function () {
+    // ── Active timer: ticking hours input ──────────────────────────────────
+    var $timerHours       = $('#sw-timer-hours');
+    var $timerHoursHidden = $('#sw-timer-hours-hidden');
+    var timerHoursDirty   = false;
+    var timerTickTimeout  = null;
+    var timerTickInterval = null;
+
+    function startTimerHoursTick() {
+      var accSec  = parseInt($timerHours.data('accumulated-seconds'), 10) || 0;
+      var started = $timerHours.data('started-at');
+      var startMs = started ? new Date(started).getTime() : null;
+
+      function tick() {
+        if (timerHoursDirty) return;
+        var secs = accSec;
+        if (startMs) { secs += Math.floor((Date.now() - startMs) / 1000); }
+        var mins = Math.floor(secs / 60);
+        var h    = Math.floor(mins / 60);
+        var m    = mins % 60;
+        $timerHours.val(h + ':' + (m < 10 ? '0' : '') + m);
+      }
+
+      tick();
+      var msToNext = 60000 - (Date.now() % 60000);
+      timerTickTimeout = setTimeout(function () {
+        tick();
+        timerTickInterval = setInterval(tick, 60000);
+      }, msToNext);
+    }
+
+    if ($timerHours.length && $timerHours.data('state') === 'running') {
+      startTimerHoursTick();
+    }
+
+    $timerHours.on('input', function () {
+      timerHoursDirty = true;
+      $timerHoursHidden.val($(this).val());
+      $('#sw-stop-btn').addClass('sw-stop-disabled');
+    });
+
+    $timerHours.on('focus', function () {
+      clearTimeout(timerTickTimeout);
+      clearInterval(timerTickInterval);
+    });
+
+    $timerHours.on('blur', function () {
+      if (!timerHoursDirty) {
+        startTimerHoursTick();
+      }
+    });
+
+    // ── Other users' timers: tick running ones ───────────────────────────────
+    $('.sw-other-elapsed').each(function () {
+      var el = this;
+      if (el.dataset.state !== 'running') { return; }
+      startMinuteTick(
+        el,
+        parseInt(el.dataset.accumulatedSeconds, 10) || 0,
+        el.dataset.startedAt ? new Date(el.dataset.startedAt).getTime() : null
+      );
+    });
+
+    $('.sw-issue-input').each(function () {
+      setupAutocomplete($(this).data('segment-id'));
+    });
+
+    // ── Enter key: submit form ───────────────────────────────────────────────
+
+    // Active timer block
+    $(document).on('keydown', '.sw-active-timer-row input, .sw-active-timer-row select', function (e) {
+      if (e.key !== 'Enter') { return; }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      swSubmitTimerForm();
+    });
+
+    // Segments: hours, activity, comments, project
+    $(document).on('keydown', '.sw-hours-input, .sw-activity-select, .sw-comments-input, .sw-project-select', function (e) {
+      if (e.key !== 'Enter') { return; }
+      e.preventDefault();
+      var segId = $(this).data('segment-id');
+      swSubmitForm('sw-update-form-' + segId, segId);
+    });
+
+    // Segments: issue (skip if autocomplete dropdown is open)
+    $(document).on('keydown', '.sw-issue-input', function (e) {
+      if (e.key !== 'Enter') { return; }
+      if ($('.ui-autocomplete:visible').length) { return; }
+      e.preventDefault();
+      var segId = $(this).data('segment-id');
+      swSubmitForm('sw-update-form-' + segId, segId);
+    });
+
+    // ── Initial focus ────────────────────────────────────────────────────────
+    var $timerComments = $('#sw-timer-comments');
+    if ($timerComments.length) {
+      $timerComments.focus();
+    } else {
+      $('.sw-comments-input').first().focus();
+    }
+  });
+
+}(jQuery));
+</script>
+<% end %>

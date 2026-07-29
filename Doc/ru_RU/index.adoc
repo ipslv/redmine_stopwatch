@@ -1,0 +1,378 @@
+= Redmine Stopwatch plugin
+:author: SIA "IPS"
+:email: info@mastersoft.lv
+:toc: left
+:toclevels: 3
+:icons: font
+:sectnums:
+:toc-placement: manual
+:lang: en
+
+****
+include::.includes/revision.adoc.inc[]
+****
+
+[cols="20%,80%",frame="none",grid="none"]
+|====
+
+a|
+image::images/ChatGPT-Redmine-Stopwatch-crop-128x128.png[align="center"]
+
+a|
+The plugin adds an interactive stopwatch timer to the Redmine top panel.
+The timer allows you to track time spent working on issues and record it via the standard Log Time mechanism.
+
+|====
+
+<<<
+
+toc::[]
+
+<<<
+
+== Quick start
+
+. Open the page of the issue you want to work on.
+. Click *▶* in the top panel — the timer will start and bind to this issue.
+. Work.  The timer will keep running even if you go to another page or close the browser.
+. When you are done, click *⏹* — the time will be saved as a snap.
+. Go to the snaps page (*☰*), check the data and click *Log time*.
+
+TIP: While the timer is running, you can open the snaps page (*☰*) and fill in the activity and comment in advance in the *Active timer* block.  This data will be automatically transferred to the snap when the timer is stopped.
+
+== Timer widget
+
+The widget is located in the right part of Redmine's top panel and is available on any page.
+
+=== Controls
+
+[cols="1,4"]
+|===
+| Button | Description
+
+| *▶*
+| Start the timer.  Binds to the issue or project of the current page.
+
+| *⏸*
+| Pause the timer.  Accumulated time is preserved.
+
+| *⏯*
+| Resume after a pause.
+
+| *⏹*
+| Stop the timer.  The time is saved as a snap.  You stay on the current page.
+
+| *⏭*
+| Snap: save the current time segment, reset the counter and continue working in the context of the current page.
+
+| *☰*
+| Open the snaps page.  The number of unsaved snaps is displayed next to it.
+|===
+
+=== Context
+
+The widget shows what the timer is bound to:
+
+* *#1234* — link to the issue
+* *ProjectName* — link to the project (long names are truncated)
+
+If you have navigated to a different issue or project page, the widget will show both contexts:
+the current timer context and the new page context next to the *⏭* button.
+
+.Widget layout examples
+[cols="2,3"]
+|===
+| State | Layout
+
+| Stopped
+| `#1234 ▶ \| ☰`
+
+| Running (same issue)
+| `#1234 - 0:45 \| ⏸ ⏹ ⏭ \| ☰ 2`
+
+| Running (different issue)
+| `#1234 - 0:45 \| ⏸ ⏹ \| #5678 ⏭ \| ☰ 2`
+
+| Paused
+| `#1234 - 0:45 \| ⏯ ⏹ ⏭ \| ☰ 2`
+|===
+
+=== Snap counter (badge)
+
+The number of unsaved snaps is displayed next to *☰*.
+If there are no unsaved snaps, the counter is hidden.
+
+=== Cross-tab synchronization
+
+If Redmine is open in several browser tabs, switching the timer (start, stop, pause, etc.) in one tab instantly updates the widget in all the others.
+No page reload is required.
+
+== Typical scenarios
+
+=== Working on a single issue
+
+. Open the issue.
+. Click *▶*.
+. Work.
+. Click *⏹*.
+. Go to the snaps page (*☰*), select an activity and add a comment if necessary.
+. Click *Log time*.
+
+=== Switching between issues
+
+. Start the timer on the first issue (*▶*).
+. When switching to the second issue, open its page and click *⏭*.
+  The time of the first issue will be saved as a snap, the timer will be reset and bound to the second issue.
+. Repeat for each next issue.
+. When you finish the last one, click *⏹*.
+. Go to the snaps page (*☰*) and process all snaps.
+
+=== Break
+
+. Click *⏸* — the timer is paused, time is not accumulated.
+. Click *⏯* — the timer will resume from the same point.
+
+== Stopwatch page
+
+You can navigate to the page by clicking *☰* in the widget.
+
+The page is divided into four blocks, each in a separate frame: *Active timer*, *Segments*, *Other users' timers* and *Spent time*.
+
+NOTE: When the timer is switched (start, stop, snap, etc.) on the snaps page, it is automatically reloaded to refresh the data.
+
+[#active-timer-block]
+=== "Active timer" block
+
+If the timer is running or paused, the *Active timer* block with information about the current timer is displayed at the top of the page:
+
+[cols="2,5"]
+|===
+| Field | Description
+
+| *Project* / *Issue*
+| Timer context (read-only).
+
+| *Hours*
+| Ticking time (updated every minute).  The field is editable — see <<editing-timer-hours>>.
+
+| *Activity*
+| Drop-down list of activity types.  Can be selected in advance — the value will be saved and used when the snap is created.
+
+| *Comments*
+| Arbitrary comment.  Can be entered in advance — the text will be saved and used when the snap is created.
+|===
+
+Actions:
+
+* *Save* — save activity, comment and (if changed) time to the database.  A snap is created only if the Hours field has been changed.
+* *⏹ Stop* — save activity and comment, stop the timer and create a snap with the current time.  If the Hours field has been edited, the Stop button is blocked (grayed out) — you must click Save first.
+
+When the timer is stopped (*⏹*) or a snap (*⏭*) is taken via the widget, saved values are automatically transferred to the created segment.
+
+TIP: Pressing *Enter* on any input field in the Active timer block is equivalent to clicking *Save*.
+
+[#editing-timer-hours]
+==== Editing the active timer time
+
+The *Hours* field in the Active timer block is editable (H:MM format).  When you click on the field, the ticking is paused so you can enter the desired value.  If you have not changed the value and removed focus — the ticking resumes.
+
+Decreasing the time::
+The entered value is saved as a new snap.  The timer *does not stop* — it continues running with the remainder (current time minus the entered value).
+
+Increasing the time::
+The entered value is saved as a new snap.  The timer is reset to 0:00 and continues running.
+The increase is limited by the *Maximum time increase per segment* setting.
+
+NOTE: If the Hours field has not been changed, clicking *Save* saves only the activity and comment, no snap is created.
+
+=== Snaps table
+
+Snaps are grouped by date (headers *Today*, *Yesterday* for the last two days).
+Each snap is displayed as a table row with the following fields:
+
+[cols="2,5"]
+|===
+| Field | Description
+
+| *Project*
+| Drop-down list of projects in which you are allowed to log time.
+
+| *Issue*
+| Text field with autocomplete.  Start typing the number or title of the issue — a list of suggestions will appear.  When an issue is selected, the project is filled in automatically.
+
+| *Hours*
+| Spent time in H:MM format.  The field is editable — see <<editing-hours>>.
+
+| *Activity*
+| Activity type (Development, Design, etc.).
+
+| *Comments*
+| Arbitrary comment for the time entry.
+|===
+
+=== Actions
+
+Three actions are available for each snap:
+
+Save::
+Save the current field values (project, issue, time, activity, comment) to the database.
+A time entry in Redmine is *not created*.
+The *Comment* field is required.
+If the time was decreased — a remainder segment is created automatically (see <<editing-hours>>).
+Use this to fill in the fields now and process them later.
+
+Log time::
+Create a Redmine Time Entry.
+The *Project*, *Activity* and *Comment* fields are required.
+If the time was decreased — a remainder segment is created automatically.
+After successful saving, the snap is deleted.
+
+Delete::
+Delete the snap.
+Confirmation is required.
+
+=== Field relationships
+
+* When *the project is changed*, the issue field is cleared (issues are bound to a specific project).
+* When *an issue is selected* via autocomplete, the project is filled in automatically.
+
+TIP: Pressing *Enter* on any input field in the snaps table is equivalent to clicking *Save* for that row.
+
+[#editing-hours]
+=== Editing the time
+
+The *Hours* field in snaps is editable (H:MM format).  The time can be both decreased and increased.
+
+Decreasing the time::
+When saving (*Save* or *Log time*), the snap is automatically split into two:
+the specified part is saved or logged, and the remainder stays as a separate snap with the same project, issue and date.
+
+Increasing the time::
+The increase is limited by the *Maximum time increase per segment* plugin setting (default: 60 minutes).
+The record is not split — the updated time is applied as a whole.
+
+NOTE: The minimum allowed snap time is 0:01 (one minute).
+
+[#other-timers-block]
+=== "Other users' timers" block
+
+If your role has been granted the *View other users' stopwatch* permission (see <<Permissions>>), a block with active timers of other users is displayed below your table on the snaps page.
+
+The information is displayed in read-only mode:
+
+[cols="2,5"]
+|===
+| Column | Content
+
+| *User*
+| User name (link to the profile).
+
+| *Project*
+| The project to which the timer is bound.
+
+| *Issue*
+| The issue the user is working on.
+
+| *Hours*
+| Ticking time (updated every minute for running timers).
+
+| *Status*
+| State: Running or Paused.
+|===
+
+[#spent-time-block]
+=== Spent time block
+
+Below the snaps table, the *Spent time* block is displayed — a list of the current user's latest time entries.
+
+The *Spent time* block header is a link and leads to the Redmine report page with all the user's time entries.
+Next to the header, the period (number of days) and total time for this period are shown.
+
+Entries are grouped by date.  For each date, an hours subtotal is displayed.
+For each entry, the following data is available:
+
+[cols="2,5"]
+|===
+| Column | Content
+
+| *Activity*
+| Activity type.
+
+| *Project*
+| Link to the project.  If the entry is bound to an issue — a clickable link to the issue (tracker, number and subject) is displayed next to it.
+
+| *Comment*
+| Comment for the time entry.
+
+| *Hours*
+| Spent time.
+
+| *(action)*
+| The *✏ Edit* link — navigation to the standard Redmine time entry edit form.
+Displayed only if the user has the right to edit this entry.
+|===
+
+The number of days for which entries are shown is configured in the *Days of spent time to show* parameter (see <<Settings>>).
+
+== Settings
+
+Settings are available in *Administration > Plugins > Redmine Stopwatch > Configure*.
+
+Default project::
+The project that will be pre-selected for new snaps created without a context (for example, if the timer was started from a page other than a project or issue page).
+If not set — the project drop-down list on the snaps page will be empty and the user must select a project manually.
+
+Days of spent time to show::
+The number of days for which time entries are displayed in the <<spent-time-block,Spent time>> block on the snaps page.
+Default: *2* (today and yesterday).
+
+Maximum time increase per segment::
+The maximum allowed increase of the snap time (in minutes) relative to what was recorded when the timer was stopped.
+Allowed range: *1–480* minutes.  Default: *60* minutes.
+For details, see <<editing-hours>> and <<editing-timer-hours>>.
+
+== Permissions
+
+Permissions are configured in *Administration > Roles and permissions*.
+
+Use stopwatch::
+Access to the timer and snaps page.  Required to work with the plugin.
+
+View other users' stopwatch::
+View active timers of other users in the <<other-timers-block,Other users' timers>> block on the snaps page.
+Optional.
+
+NOTE: Creating time entries (Log time) is additionally restricted by the standard Redmine *Log time* permission at the project level.
+
+== FAQ
+
+=== Does the timer keep running after the browser is closed?
+
+Yes.  The timer state is stored on the server.
+The next time you open Redmine, the widget will show the actual accumulated time.
+
+=== What happens if the issue or project is deleted?
+
+The widget will correctly display the timer without a context.
+On the snaps page, you will need to select a project manually.
+
+=== Can snaps be edited?
+
+Yes.  On the snaps page, you can change the project, issue, time, activity and comment.
+The time can be both decreased (with automatic splitting into parts) and increased (within the plugin setting).
+Click *Save* to save the changes, or *Log time* right away to process the entry.
+
+=== Can I cut off part of the time from a running timer?
+
+Yes.  Open the Stopwatch page (*☰*), click on the *Hours* field in the <<active-timer-block,Active timer>> block and enter the desired value (H:MM format).
+Click *Save* — the specified portion will be saved as a new snap, and the timer will continue running with the remainder.
+For details, see <<editing-timer-hours>>.
+
+=== Can I fill in the comment in advance while the timer is running?
+
+Yes.  Open the Stopwatch page (*☰*) and fill in the *Activity* and *Comments* fields in the <<active-timer-block,Active timer>> block.
+Click *Save* — the data will be saved and automatically transferred to the snap when the timer is stopped.
+
+=== Can the plugin be used on a mobile device?
+
+The widget adapts to Redmine's mobile interface, but the main experience is designed for desktop.

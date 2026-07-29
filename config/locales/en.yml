@@ -1,0 +1,26 @@
+en:
+  permission_use_stopwatch: "Use stopwatch"
+  permission_view_stopwatch_others: "View other users' stopwatch"
+
+  label_minute_plural: "minutes"
+
+  label_stopwatch_segments: "Stopwatch"
+  label_stopwatch_segments_list: "Segments"
+  label_stopwatch_no_segments: "No unsaved segments."
+  label_stopwatch_no_project: "(no project)"
+  label_stopwatch_default_project: "Default project"
+  label_stopwatch_spent_time_days: "Days of spent time to show"
+  label_stopwatch_max_hours_increase: "Maximum time increase per segment (minutes)"
+  label_stopwatch_active_timer: "Active timer"
+  label_stopwatch_other_timers: "Other users' timers"
+  label_stopwatch_state_running: "Running"
+  label_stopwatch_state_paused: "Paused"
+
+  button_stop: "Stop"
+
+  error_stopwatch_activity_required: "Activity is required"
+  error_stopwatch_comments_required: "Comment is required"
+  error_stopwatch_hours_increase_exceeded: "Time increase cannot exceed %{max} minutes"
+  error_stopwatch_hours_too_small: "Time must be at least 0:01"
+  error_stopwatch_invalid_hours: "Invalid time format (expected H:MM)"
+  error_stopwatch_project_required: "Project is required"
