@@ -9,15 +9,13 @@
 :lang: en
 :imagesdir: Manual/images
 
-****
-include::.includes/revision.adoc.inc[]
-****
+
 
 [cols="20%,80%",frame="none",grid="none"]
 |====
 
 a|
-image::images/ChatGPT-Redmine-Stopwatch-crop-128x128.png[align="center"]
+image::Manual/images/ChatGPT-Redmine-Stopwatch-crop-128x128.png[align="center"]
 
 a|
 The plugin adds an interactive stopwatch timer to the Redmine top panel.
