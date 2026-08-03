@@ -6,6 +6,38 @@
 
 ---
 
+## Screenshots
+
+**1. Open an issue — the widget in the header shows its context and the ▶ button**
+
+![Stopped timer on an issue page](Doc/en_EN/Manual/images/stopwatch-screen-01.png)
+
+**2. Start the timer — the accumulated time and the ⏸ ⏹ ⏭ controls appear**
+
+![Running timer](Doc/en_EN/Manual/images/stopwatch-screen-02.png)
+
+**3. Go to another page — the widget shows both contexts: the timer's one and the current page's one**
+
+![Timer context and page context](Doc/en_EN/Manual/images/stopwatch-screen-03.png)
+
+**4. Click ⏭ — the time of the previous context is saved as a snap**
+
+![Snap button](Doc/en_EN/Manual/images/stopwatch-screen-04.png)
+
+**5. The timer is rebound to the new context, and the badge next to ☰ counts unsaved snaps**
+
+![Snap counter badge](Doc/en_EN/Manual/images/stopwatch-screen-05.png)
+
+**6. The Stopwatch page — the active timer, the snaps table and the spent time**
+
+![Stopwatch page](Doc/en_EN/Manual/images/stopwatch-screen-06.png)
+
+**7. Plugin settings — Administration > Plugins > Redmine Stopwatch > Configure**
+
+![Plugin settings](Doc/en_EN/Manual/images/stopwatch-screen-07.png)
+
+---
+
 ## Features
 
 - **Timer in the header** — always available on any Redmine page

@@ -43,6 +43,9 @@ TIP: While the timer is running, you can open the snaps page (*☰*) and fill in
 
 The widget is located in the right part of Redmine's top panel and is available on any page.
 
+.Stopped timer on an issue page: the issue context and the *▶* button
+image::stopwatch-screen-01.png[Stopped timer widget on an issue page,align="center"]
+
 === Controls
 
 [cols="1,4"]
@@ -68,6 +71,9 @@ The widget is located in the right part of Redmine's top panel and is available 
 | Open the snaps page.  The number of unsaved snaps is displayed next to it.
 |===
 
+.Running timer: the accumulated time and the *⏸ ⏹ ⏭* controls
+image::stopwatch-screen-02.png[Running timer widget with controls,align="center"]
+
 === Context
 
 The widget shows what the timer is bound to:
@@ -77,6 +83,9 @@ The widget shows what the timer is bound to:
 
 If you have navigated to a different issue or project page, the widget will show both contexts:
 the current timer context and the new page context next to the *⏭* button.
+
+.Timer bound to issue *#30370*, the current page is the *Order Management* project — both contexts are visible
+image::stopwatch-screen-03.png[Widget with the timer context and the page context,align="center"]
 
 .Widget layout examples
 [cols="2,3"]
@@ -100,6 +109,9 @@ the current timer context and the new page context next to the *⏭* button.
 
 The number of unsaved snaps is displayed next to *☰*.
 If there are no unsaved snaps, the counter is hidden.
+
+.After a snap the timer is rebound to the new context and the counter next to *☰* shows one unsaved snap
+image::stopwatch-screen-05.png[Snap counter badge next to the snaps page button,align="center"]
 
 === Cross-tab synchronization
 
@@ -126,6 +138,9 @@ No page reload is required.
 . When you finish the last one, click *⏹*.
 . Go to the snaps page (*☰*) and process all snaps.
 
+.Clicking *⏭* saves the time of the previous context and rebinds the timer to the current page
+image::stopwatch-screen-04.png[Snap button in the widget,align="center"]
+
 === Break
 
 . Click *⏸* — the timer is paused, time is not accumulated.
@@ -136,6 +151,9 @@ No page reload is required.
 You can navigate to the page by clicking *☰* in the widget.
 
 The page is divided into four blocks, each in a separate frame: *Active timer*, *Segments*, *Other users' timers* and *Spent time*.
+
+.Stopwatch page: the *Active timer* block, the snaps table and the *Spent time* block
+image::stopwatch-screen-06.png[Stopwatch page with the active timer and segments,align="center"]
 
 NOTE: When the timer is switched (start, stop, snap, etc.) on the snaps page, it is automatically reloaded to refresh the data.
 
@@ -316,6 +334,9 @@ The number of days for which entries are shown is configured in the *Days of spe
 == Settings
 
 Settings are available in *Administration > Plugins > Redmine Stopwatch > Configure*.
+
+.Plugin settings form
+image::stopwatch-screen-07.png[Redmine Stopwatch plugin settings,align="center"]
 
 Default project::
 The project that will be pre-selected for new snaps created without a context (for example, if the timer was started from a page other than a project or issue page).
